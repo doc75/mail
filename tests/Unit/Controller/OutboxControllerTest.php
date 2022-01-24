@@ -25,39 +25,18 @@ declare(strict_types=1);
 namespace OCA\Mail\Tests\Unit\Controller;
 
 use ChristophWurst\Nextcloud\Testing\TestCase;
-use Exception;
-use Horde_Exception;
 use OCA\Mail\Account;
-use OCA\Mail\Contracts\ILocalMailbox;
-use OCA\Mail\Contracts\IMailManager;
-use OCA\Mail\Contracts\IMailTransmission;
-use OCA\Mail\Controller\AccountsController;
 use OCA\Mail\Controller\OutboxController;
 use OCA\Mail\Db\LocalMailboxMessage;
-use OCA\Mail\Db\Mailbox;
-use OCA\Mail\Db\Message;
 use OCA\Mail\Exception\ClientException;
-use OCA\Mail\Exception\ManyRecipientsException;
 use OCA\Mail\Exception\ServiceException;
-use OCA\Mail\Model\NewMessageData;
-use OCA\Mail\Model\RepliedMessageData;
 use OCA\Mail\Service\AccountService;
-use OCA\Mail\Service\AliasesService;
-use OCA\Mail\Service\AutoConfig\AutoConfig;
 use OCA\Mail\Service\OutboxService;
-use OCA\Mail\Service\SetupService;
-use OCA\Mail\Service\GroupsIntegration;
-use OCA\Mail\Service\Sync\SyncService;
-use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IL10N;
 use OCP\IRequest;
-use OCP\IUser;
-use OCP\Security\ICrypto;
 use PHPUnit\Framework\MockObject\MockObject;
-use Psr\Log\LoggerInterface;
 
 /**
  * @property
@@ -225,7 +204,7 @@ class OutboxControllerTest extends TestCase {
 			->with($message, [], []);
 
 		$expectedResponse = new JSONResponse($message, Http::STATUS_CREATED);
-		$response =	$this->controller->save(1, $this->time->getTime(), 'Test', 'Test Test Test', true, false, 'abc@cde.com', [], []);
+		$response = $this->controller->save(1, $this->time->getTime(), 'Test', 'Test Test Test', true, false, 'abc@cde.com', [], []);
 		$this->assertEquals($expectedResponse, $response);
 	}
 
@@ -279,7 +258,7 @@ class OutboxControllerTest extends TestCase {
 			->willReturn($account);
 		$this->outboxService->expects($this->once())
 			->method('sendMessage')
-			->with($message,$account);
+			->with($message, $account);
 
 		$this->controller->send(1);
 	}

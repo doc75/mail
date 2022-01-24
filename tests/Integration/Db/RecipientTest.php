@@ -26,11 +26,11 @@ declare(strict_types=1);
 namespace OCA\Mail\Tests\Integration\Db;
 
 use ChristophWurst\Nextcloud\Testing\TestCase;
-use OCA\Mail\Db\LocalMailboxMessage;
+use OCA\Mail\Db\Recipient;
 use OCP\AppFramework\Utility\ITimeFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 
-class LocalMailboxTest extends TestCase {
+class RecipientTest extends TestCase {
 
 	/** @var ITimeFactory|MockObject  */
 	private $timeFactory;
@@ -41,24 +41,19 @@ class LocalMailboxTest extends TestCase {
 
 	public function testObject(): void {
 		$time = $this->timeFactory->getTime();
-		$message = new LocalMailboxMessage();
+		$recipient = new Recipient();
 
-		$message->setType(LocalMailboxMessage::OUTGOING);
-		$message->setAccountId(1);
-		$message->setSendAt($time);
-		$message->setSubject('subject');
-		$message->setBody('message');
-		$message->setMdn(true);
-		$message->setHtml(true);
-		$message->setInReplyToMessageId('abc@cde.com');
+		$recipient->setMessageId(1);
+		$recipient->setType(Recipient::TYPE_TO);
+		$recipient->setMailboxType(Recipient::TYPE_OUTBOX);
+		$recipient->setLabel('Penny');
+		$recipient->setEmail('penny@stardew-library.edu');
 
-		$this->assertEquals(LocalMailboxMessage::OUTGOING, $message->getType());
-		$this->assertEquals(1, $message->getAccountId());
-		$this->assertEquals($time, $message->getSendAt());
-		$this->assertEquals('subject', $message->getSubject());
-		$this->assertEquals('message', $message->getBody());
-		$this->assertTrue($message->isHtml());
-		$this->assertTrue($message->isMdn());
-		$this->assertEquals('abc@cde.com', $message->getInReplyToMessageId());
+
+		$this->assertEquals(1, $recipient->getId());
+		$this->assertEquals(Recipient::TYPE_TO, $recipient->getType());
+		$this->assertEquals(Recipient::TYPE_OUTBOX, $recipient->getMailboxType());
+		$this->assertEquals('Penny', $recipient->getLabel());
+		$this->assertEquals('penny@stardew-library.edu', $recipient->getEmail());
 	}
 }
