@@ -37,21 +37,21 @@ use OCP\IDBConnection;
  * @template-extends QBMapper<Tag>
  */
 class LocalMailboxMessageMapper extends QBMapper {
-	/** @var RecipientMapper */
-	private $mapper;
-
 	/** @var MailAccountMapper */
 	private $accountMapper;
 
 	/** @var LocalAttachmentMapper */
 	private $attachmentMapper;
 
+	/** @var RecipientMapper */
+	private $recipientMapper;
+
 	public function __construct(IDBConnection $db,
 								MailAccountMapper $accountMapper,
 								LocalAttachmentMapper $attachmentMapper,
 								RecipientMapper $recipientMapper) {
 		parent::__construct($db, 'mail_local_mailbox');
-		$this->mapper = $recipientMapper;
+		$this->recipientMapper = $recipientMapper;
 		$this->accountMapper = $accountMapper;
 		$this->attachmentMapper = $attachmentMapper;
 	}
@@ -74,9 +74,10 @@ class LocalMailboxMessageMapper extends QBMapper {
 			);
 		$result = $qb->execute();
 
+		// rebuild as we're returning a mix of array and entity here
 		$messages = array_map(function (array $row) use ($userId) {
 			$row['attachments'] = $this->attachmentMapper->findForLocalMailbox($row['id'], $userId);
-			$row['recipients'] = $this->mapper->findRecipients($row['id'], Recipient::TYPE_OUTBOX);
+			$row['recipients'] = $this->recipientMapper->findRecipients($row['id'], Recipient::TYPE_OUTBOX);
 			return $row;
 		}, $result->fetchAll());
 		$result->closeCursor();
@@ -96,20 +97,35 @@ class LocalMailboxMessageMapper extends QBMapper {
 			->where(
 				$qb->expr()->in('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT), IQueryBuilder::PARAM_INT)
 			);
-		return $this->mapper->findEntity($qb);
+		return $this->findEntity($qb);
 	}
 
-	/**
-	 */
 	public function getRelatedData(int $id, string $userId): array {
 		$related = [];
 		$related['attachments'] = $this->attachmentMapper->findForLocalMailbox($id, $userId);
-		$related['recipients'] = $this->mapper->findRecipients($id, Recipient::TYPE_OUTBOX);
+		$related['recipients'] = $this->recipientMapper->findRecipients($id, Recipient::TYPE_OUTBOX);
 		return $related;
 	}
 
-	public function saveRelatedData(LocalMailboxMessage $message, array $recipients, array $attachmentIds = []): array {
-		//Todo
-		return [];
+	/**
+	 * @throws DBException
+	 */
+	public function saveWithRelatedData(LocalMailboxMessage $message, array $recipients, array $attachmentIds = []): void {
+		$this->insert($message);
+		foreach ($recipients as $recipient) {
+			$this->recipientMapper->createForLocalMailbox($message->getId(), $recipient['label'] ?? $recipient['email'], $recipient['email']);
+		}
+		foreach ($attachmentIds as $attachmentId) {
+			$this->attachmentMapper->linkAttachmentToMessage($message->getId(), $attachmentId);
+		}
+	}
+
+	/**
+	 * @throws DBException
+	 */
+	public function deleteWithRelated(LocalMailboxMessage $message, string $userId): void {
+		$this->attachmentMapper->deleteForLocalMailbox($message->getId(), $userId);
+		$this->recipientMapper->deleteForLocalMailbox($message->getId());
+		$this->delete($message);
 	}
 }

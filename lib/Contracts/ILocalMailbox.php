@@ -64,7 +64,7 @@ interface ILocalMailbox {
 	 * @throws ClientException
 	 * @throws ServiceException
 	 */
-	public function deleteMessage(LocalMailboxMessage $message): void;
+	public function deleteMessage(LocalMailboxMessage $message, string $userId): void;
 
 	/**
 	 * @param LocalMailboxMessage $message
@@ -73,5 +73,5 @@ interface ILocalMailbox {
 	 * @throws ClientException
 	 * @throws ServiceException
 	 */
-	public function sendMessage(LocalMailboxMessage $message, Account $account): bool;
+	public function sendMessage(LocalMailboxMessage $message, Account $account): void;
 }

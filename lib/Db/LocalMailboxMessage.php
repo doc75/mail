@@ -58,11 +58,19 @@ class LocalMailboxMessage extends Entity implements JsonSerializable {
 	protected $sendAt;
 
 	/** @var string */
-	protected $text;
+	protected $subject;
 
+	/** @var string */
+	protected $body;
+
+	/** @var bool */
 	protected $html;
 
+	/** @var bool */
 	protected $mdn;
+
+	/** @var string */
+	protected $inReplyToMessageId;
 
 	public const OUTGOING = 0;
 	public const DRAFT = 1;

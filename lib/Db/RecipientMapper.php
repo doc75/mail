@@ -38,6 +38,9 @@ class RecipientMapper extends QBMapper {
 		parent::__construct($db, 'mail_recipients');
 	}
 
+	/**
+	 * @throws \OCP\DB\Exception
+	 */
 	public function findRecipients(int $messageId, int $mailboxType = Recipient::TYPE_INBOX): array {
 		$qb = $this->db->getQueryBuilder();
 
@@ -52,5 +55,28 @@ class RecipientMapper extends QBMapper {
 		$rows = $result->fetchAll();
 		$result->closeCursor();
 		return $rows;
+	}
+
+	public function deleteForLocalMailbox(int $messageId): void {
+		$qb = $this->db->getQueryBuilder();
+
+		$qb->delete($this->getTableName())
+			->where(
+				$qb->expr()->eq('message_id', $qb->createNamedParameter($messageId, IQueryBuilder::PARAM_INT)),
+				$qb->expr()->eq('mailbox_type', $qb->createNamedParameter(Recipient::TYPE_OUTBOX, IQueryBuilder::PARAM_INT))
+			);
+
+		$result = $qb->execute();
+		$result->closeCursor();
+	}
+
+	public function createForLocalMailbox(int $messageId, string $label, string $email): Recipient {
+		$recipient = new Recipient();
+		$recipient->setMessageId($messageId);
+		$recipient->setMailboxType(Recipient::TYPE_OUTBOX);
+		$recipient->setLabel($label);
+		$recipient->setEmail($email);
+		$this->insert($recipient);
+		return $recipient;
 	}
 }

@@ -27,16 +27,11 @@ declare(strict_types=1);
 namespace OCA\Mail\Service;
 
 use OCA\Mail\Account;
-use OCA\Mail\Address;
-use OCA\Mail\AddressList;
 use OCA\Mail\Contracts\ILocalMailbox;
 use OCA\Mail\Contracts\IMailTransmission;
 use OCA\Mail\Db\LocalMailboxMessage;
 use OCA\Mail\Db\LocalMailboxMessageMapper;
-use OCA\Mail\Db\Recipient;
-use OCA\Mail\Exception\SentMailboxNotSetException;
 use OCA\Mail\Exception\ServiceException;
-use OCA\Mail\Model\NewMessageData;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\DB\Exception;
@@ -84,9 +79,10 @@ class OutboxService implements ILocalMailbox {
 	/**
 	 * @throws ServiceException
 	 */
-	public function deleteMessage(LocalMailboxMessage $message): void {
+	public function deleteMessage(LocalMailboxMessage $message, string $userId): void {
+		// also delete all related entries in the recipients and attachments table!
 		try {
-			$this->mapper->delete($message);
+			$this->mapper->deleteWithRelated($message, $userId);
 		} catch (Exception $e) {
 			throw new ServiceException('Could not delete message' . $e->getMessage(), $e->getCode(), $e);
 		}
@@ -95,40 +91,13 @@ class OutboxService implements ILocalMailbox {
 	/**
 	 * @throws ServiceException
 	 */
-	public function sendMessage(LocalMailboxMessage $message, Account $account): bool {
-		$related = $this->mapper->getRelatedData($message->getId(), $account->getUserId());
-		$recipients = $related['recipients'];
-		$to = new AddressList(
-			array_filter($recipients, static function ($recipient) {
-				if (Recipient::TYPE_TO === $recipient['type']) {
-					Address::fromRaw($recipient['label'], $recipient['email']);
-				}
-			}));
-		$cc = new AddressList(
-			array_filter($recipients, static function ($recipient) {
-				if (Recipient::TYPE_CC === $recipient['type']) {
-					Address::fromRaw($recipient['label'], $recipient['email']);
-				}
-			}));
-		$bcc = new AddressList(
-			array_filter($recipients, static function ($recipient) {
-				if (Recipient::TYPE_BCC === $recipient['type']) {
-					Address::fromRaw($recipient['label'], $recipient['email']);
-				}
-			}));
-		$messageData = new NewMessageData(
-			$account, $to, $cc, $bcc, $message->getSubject(), $message['body'], $related['attachments'], $message->isHtml(), $message->isMdn()
-		);
+	public function sendMessage(LocalMailboxMessage $message, Account $account): void {
 		try {
-			if (!$message->isMdn()) {
-				$this->transmission->sendMessage($messageData);
-				$this->mapper->delete($message);
-			} else {
-				// wot? How do I MDN?
-				throw new ServiceException('Not implemented', 400);
-			}
-		} catch (SentMailboxNotSetException | Exception $e) {
-			throw new ServiceException('Could not send message' . $e->getMessage(), $e->getCode(), $e);
+			$related = $this->mapper->getRelatedData($message->getId(), $account->getUserId());
+			$this->transmission->sendLocalMessage($account, $message, $related['recipients'], $related['attachments']);
+			$this->mapper->deleteWithRelated($message, $account->getUserId());
+		} catch (Exception $e) {
+			throw new ServiceException('Could not send message');
 		}
 	}
 
@@ -137,10 +106,10 @@ class OutboxService implements ILocalMailbox {
 	 */
 	public function saveMessage(LocalMailboxMessage $message, array $recipients, array $attachmentIds = []): LocalMailboxMessage {
 		try {
-			$this->mapper->insert($message);
+			$this->mapper->saveWithRelatedData($message, $recipients, $attachmentIds);
 		} catch (Exception $e) {
 			throw new ServiceException('Could not save message', 400);
 		}
-		$this->mapper->saveRelatedData($message, $recipients, $attachmentIds);
+		return $message;
 	}
 }
