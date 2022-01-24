@@ -28,7 +28,6 @@ namespace OCA\Mail\Tests\Integration\Db;
 use ChristophWurst\Nextcloud\Testing\DatabaseTransaction;
 use ChristophWurst\Nextcloud\Testing\TestCase;
 use OCA\Mail\Account;
-use OCA\Mail\Db\LocalMailbox;
 use OCA\Mail\Db\MailboxMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -64,20 +63,70 @@ class MailboxMapperTest extends TestCase {
 		$delete->execute();
 	}
 
+	public function testFindAllNoData() {
+		$account = $this->createMock(Account::class);
+		$account->method('getId')->willReturn(13);
 
-//	public function testInsert() {
-//		$qb = $this->db->getQueryBuilder();
-//		$insert = $qb->insert($this->mapper->getTableName())
-//			->values([
-//				'type' => $qb->createNamedParameter(LocalMailbox::OUTGOING, IQueryBuilder::PARAM_INT ),
-//				'account_id' => $qb->createNamedParameter(13, IQueryBuilder::PARAM_INT),
-//				'send_at' => $qb->createNamedParameter($this->timeFactory->getTime(), IQueryParameter::PARAM_INT),
-//				'text' => $qb->createNamedParameter('message'),
-//			]);
-//		$insert->execute();
-//
-//		$result = $this->mapper->find($account, 'INBOX');
-//
-//		$this->assertSame('INBOX', $result->getName());
-//	}
+		$result = $this->mapper->findAll($account);
+
+		$this->assertEmpty($result);
+	}
+
+	public function testFindAll() {
+		$account = $this->createMock(Account::class);
+		$account->method('getId')->willReturn(13);
+		foreach (range(1, 10) as $i) {
+			$qb = $this->db->getQueryBuilder();
+			$insert = $qb->insert($this->mapper->getTableName())
+				->values([
+					'name' => $qb->createNamedParameter("folder$i"),
+					'account_id' => $qb->createNamedParameter($i <= 5 ? 13 : 14, IQueryBuilder::PARAM_INT),
+					'sync_new_token' => $qb->createNamedParameter('VTEsVjE0Mjg1OTkxNDk='),
+					'sync_changed_token' => $qb->createNamedParameter('VTEsVjE0Mjg1OTkxNDk='),
+					'sync_vanished_token' => $qb->createNamedParameter('VTEsVjE0Mjg1OTkxNDk='),
+					'delimiter' => $qb->createNamedParameter('.'),
+					'messages' => $qb->createNamedParameter($i * 100, IQueryBuilder::PARAM_INT),
+					'unseen' => $qb->createNamedParameter($i, IQueryBuilder::PARAM_INT),
+					'selectable' => $qb->createNamedParameter(true, IQueryBuilder::PARAM_BOOL),
+				]);
+			$insert->execute();
+		}
+
+		$result = $this->mapper->findAll($account);
+
+		$this->assertCount(5, $result);
+	}
+
+	public function testNoInboxFound() {
+		/** @var Account|MockObject $account */
+		$account = $this->createMock(Account::class);
+		$account->method('getId')->willReturn(13);
+		$this->expectException(DoesNotExistException::class);
+
+		$this->mapper->find($account, 'INBOX');
+	}
+
+	public function testFindInbox() {
+		/** @var Account|MockObject $account */
+		$account = $this->createMock(Account::class);
+		$account->method('getId')->willReturn(13);
+		$qb = $this->db->getQueryBuilder();
+		$insert = $qb->insert($this->mapper->getTableName())
+			->values([
+				'name' => $qb->createNamedParameter('INBOX'),
+				'account_id' => $qb->createNamedParameter(13, IQueryBuilder::PARAM_INT),
+				'sync_new_token' => $qb->createNamedParameter('VTEsVjE0Mjg1OTkxNDk='),
+				'sync_changed_token' => $qb->createNamedParameter('VTEsVjE0Mjg1OTkxNDk='),
+				'sync_vanished_token' => $qb->createNamedParameter('VTEsVjE0Mjg1OTkxNDk='),
+				'delimiter' => $qb->createNamedParameter('.'),
+				'messages' => $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT),
+				'unseen' => $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT),
+				'selectable' => $qb->createNamedParameter(true, IQueryBuilder::PARAM_BOOL),
+			]);
+		$insert->execute();
+
+		$result = $this->mapper->find($account, 'INBOX');
+
+		$this->assertSame('INBOX', $result->getName());
+	}
 }

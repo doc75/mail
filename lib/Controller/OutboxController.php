@@ -26,35 +26,34 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Controller;
 
-use OCA\Mail\Contracts\ILocalMailbox;
 use OCA\Mail\Db\LocalMailboxMessage;
 use OCA\Mail\Exception\ClientException;
 use OCA\Mail\Exception\ServiceException;
 use OCA\Mail\Service\AccountService;
 use OCA\Mail\Service\OutboxService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
-use OCP\IUser;
 
 class OutboxController extends Controller {
 
 	/** @var OutboxService */
 	private $service;
 
-	/** @var IUser */
-	private $user;
+	/** @var string */
+	private $userId;
 
 	/** @var AccountService */
 	private $accountService;
 
 	public function __construct(string $appName,
-								IUser $user,
+								$UserId,
 								IRequest $request,
-								ILocalMailbox $service,
+								OutboxService $service,
 	AccountService $accountService) {
 		parent::__construct($appName, $request);
-		$this->user = $user;
+		$this->userId = $UserId;
 		$this->service = $service;
 		$this->accountService = $accountService;
 	}
@@ -67,7 +66,9 @@ class OutboxController extends Controller {
 	public function index(): JSONResponse {
 		try {
 			return new JSONResponse(
-				$this->service->getMessages($this->user->getUID())
+				[
+					'messages' => $this->service->getMessages($this->userId)
+				]
 			);
 		} catch (ServiceException $e) {
 			return new JSONResponse($e->getMessage(), $e->getCode());
@@ -83,13 +84,9 @@ class OutboxController extends Controller {
 	public function get(int $id): JSONResponse {
 		try {
 			$message = $this->service->getMessage($id);
-		} catch (ServiceException $e) {
-			return new JSONResponse('Could not find message' . $e->getMessage(), $e->getCode());
-		}
-		try {
-			$this->accountService->find($this->user->getUID(), $message->getAccountId());
-		} catch (ClientException $e) {
-			return new JSONResponse('Could not find account for user ' . $e->getMessage(), $e->getHttpCode());
+			$this->accountService->find($this->userId, $message->getAccountId());
+		} catch (ServiceException | ClientException $e) {
+			return new JSONResponse($e->getMessage(), $e->getCode());
 		}
 		return new JSONResponse(
 			$message
@@ -102,7 +99,7 @@ class OutboxController extends Controller {
 	 * @param int $accountId
 	 * @param int $sendAt
 	 * @param string $subject
-	 * @param string $text
+	 * @param string $body
 	 * @param bool $isHtml
 	 * @param bool $isMdn
 	 * @param string $inReplyToMessageId
@@ -114,7 +111,7 @@ class OutboxController extends Controller {
 		int    $accountId,
 		int    $sendAt,
 		string $subject,
-		string $text,
+		string $body,
 		bool   $isHtml,
 		bool   $isMdn,
 		string $inReplyToMessageId,
@@ -122,16 +119,16 @@ class OutboxController extends Controller {
 		array  $attachmentIds
 	): JSONResponse {
 		try {
-			$this->accountService->find($this->user->getUID(), $accountId);
+			$this->accountService->find($this->userId, $accountId);
 		} catch (ClientException $e) {
-			return new JSONResponse('Could not find account for user ' . $e->getMessage(), $e->getCode());
+			return new JSONResponse($e->getMessage(), $e->getCode());
 		}
 
 		$message = new LocalMailboxMessage();
 		$message->setAccountId($accountId);
 		$message->setSendAt($sendAt);
 		$message->setSubject($subject);
-		$message->setBody($text);
+		$message->setBody($body);
 		$message->setHtml($isHtml);
 		$message->setMdn($isMdn);
 		$message->setInReplyToMessageId($inReplyToMessageId);
@@ -139,10 +136,12 @@ class OutboxController extends Controller {
 		try {
 			$this->service->saveMessage($message, $recipients, $attachmentIds);
 		} catch (ServiceException $e) {
-			return new JSONResponse('Could not save outbox message' . $e->getMessage(), $e->getCode());
+			return new JSONResponse($e->getMessage(), $e->getCode());
 		}
+
+		// Return with related here?
 		return new JSONResponse(
-			$message
+			$message, Http::STATUS_CREATED
 		);
 	}
 
@@ -151,22 +150,17 @@ class OutboxController extends Controller {
 	 *
 	 * @param int $id
 	 * @return JSONResponse
-	 * @throws ClientException
-	 * @throws ServiceException
 	 */
 	public function send(int $id):JSONResponse {
 		try {
 			$message = $this->service->getMessage($id);
-		} catch (ServiceException $e) {
-			return new JSONResponse('Could not find message' . $e->getMessage(), $e->getCode());
-		}
-		try {
-			$account = $this->accountService->find($this->user->getUID(), $message->getAccountId());
-		} catch (ClientException $e) {
-			return new JSONResponse('Could not find account for user ' . $e->getMessage(), $e->getCode());
+			$account = $this->accountService->find($this->userId, $message->getAccountId());
+			$this->service->sendMessage($message, $account);
+		} catch (ServiceException | ClientException $e) {
+			return new JSONResponse($e->getMessage(), $e->getCode());
 		}
 		return new JSONResponse(
-			$this->service->sendMessage($message, $account)
+			'Message sent', Http::STATUS_ACCEPTED
 		);
 	}
 
@@ -175,21 +169,15 @@ class OutboxController extends Controller {
 	 *
 	 * @param int $id
 	 * @return JSONResponse
-	 * @throws ClientException
-	 * @throws ServiceException
 	 */
 	public function delete(int $id): JSONResponse {
 		try {
 			$message = $this->service->getMessage($id);
-		} catch (ServiceException $e) {
-			return new JSONResponse('Could not find message' . $e->getMessage(), $e->getCode());
+			$this->accountService->find($this->userId, $message->getAccountId());
+			$this->service->deleteMessage($message, $this->userId);
+		} catch (ServiceException | ClientException $e) {
+			return new JSONResponse($e->getMessage(), $e->getCode());
 		}
-		try {
-			$this->accountService->find($this->user->getUID(), $message->getAccountId());
-		} catch (ClientException $e) {
-			return new JSONResponse('Could not find account for user ' . $e->getMessage(), $e->getCode());
-		}
-		$this->service->deleteMessage($message);
-		return new JSONResponse('', 200);
+		return new JSONResponse('Message deleted', Http::STATUS_ACCEPTED);
 	}
 }
