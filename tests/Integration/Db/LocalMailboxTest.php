@@ -26,12 +26,7 @@ declare(strict_types=1);
 namespace OCA\Mail\Tests\Integration\Db;
 
 use ChristophWurst\Nextcloud\Testing\TestCase;
-use OCA\Files_External\Lib\Backend\Local;
-use OCA\Mail\Account;
-use OCA\Mail\AddressList;
-use OCA\Mail\Db\LocalMailbox;
-use OCA\Mail\Db\Message;
-use OCA\Mail\Model\NewMessageData;
+use OCA\Mail\Db\LocalMailboxMessage;
 use OCP\AppFramework\Utility\ITimeFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 
@@ -40,24 +35,31 @@ class LocalMailboxTest extends TestCase {
 	/** @var ITimeFactory|MockObject  */
 	private $timeFactory;
 
-	private $account;
-
 	protected function setUp(): void {
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
 	}
 
 	public function testObject(): void {
 		$time = $this->timeFactory->getTime();
-		$message = new LocalMailbox();
+		$message = new LocalMailboxMessage();
 
-		$message->setType(LocalMailbox::OUTGOING);
+		$message->setType(LocalMailboxMessage::OUTGOING);
 		$message->setAccountId(1);
 		$message->setSendAt($time);
-		$message->setText('message');
+		$message->setSubject('subject');
+		$message->setBody('message');
+		$message->setMdn(true);
+		$message->setHtml(true);
+		$message->setInReplyToMessageId('abc@cde.com');
 
-		$this->assertEquals(LocalMailbox::OUTGOING, $message->getType());
+		$this->assertEquals(LocalMailboxMessage::OUTGOING, $message->getType());
 		$this->assertEquals(1, $message->getAccountId());
 		$this->assertEquals($time, $message->getSendAt());
-		$this->assertEquals('message', $message->getText());
+		$this->assertEquals('subject', $message->getSubject());
+		$this->assertEquals('message', $message->getBody());
+		$this->assertTrue($message->isHtml());
+		$this->assertTrue($message->isMdn());
+		$this->assertEquals('abc@cde.com', $message->getInReplyToMessageId());
+
 	}
 }
