@@ -46,9 +46,11 @@ use OCA\Mail\Contracts\IAttachmentService;
 use OCA\Mail\Contracts\IMailManager;
 use OCA\Mail\Contracts\IMailTransmission;
 use OCA\Mail\Db\Alias;
+use OCA\Mail\Db\LocalMailboxMessage;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\MailboxMapper;
 use OCA\Mail\Db\Message;
+use OCA\Mail\Db\Recipient;
 use OCA\Mail\Events\DraftSavedEvent;
 use OCA\Mail\Events\MessageSentEvent;
 use OCA\Mail\Events\SaveDraftEvent;
@@ -64,6 +66,7 @@ use OCA\Mail\Model\RepliedMessageData;
 use OCA\Mail\SMTP\SmtpClientFactory;
 use OCA\Mail\Support\PerformanceLogger;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\DB\Exception;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -205,6 +208,41 @@ class MailTransmission implements IMailTransmission {
 			MessageSentEvent::class,
 			new MessageSentEvent($account, $messageData, $replyData, $draft, $message, $mail)
 		);
+	}
+
+	public function sendLocalMessage(Account $account, LocalMailboxMessage $message, array $recipients, array $attachments = []): void {
+		$to = new AddressList(
+			array_filter($recipients, static function ($recipient) {
+				if (Recipient::TYPE_TO === $recipient['type']) {
+					Address::fromRaw($recipient['label'], $recipient['email']);
+				}
+			}));
+		$cc = new AddressList(
+			array_filter($recipients, static function ($recipient) {
+				if (Recipient::TYPE_CC === $recipient['type']) {
+					Address::fromRaw($recipient['label'], $recipient['email']);
+				}
+			}));
+		$bcc = new AddressList(
+			array_filter($recipients, static function ($recipient) {
+				if (Recipient::TYPE_BCC === $recipient['type']) {
+					Address::fromRaw($recipient['label'], $recipient['email']);
+				}
+			}));
+		$messageData = new NewMessageData(
+			$account, $to, $cc, $bcc, $message->getSubject(), $message['body'], $attachments, $message->isHtml(), $message->isMdn()
+		);
+
+		try {
+			if (!$message->isMdn()) {
+				$this->sendMessage($messageData);
+			} else {
+				// wot? How do I MDN?
+				throw new ServiceException('Not implemented', 400);
+			}
+		} catch (SentMailboxNotSetException | Exception $e) {
+			throw new ServiceException('Could not send message' . $e->getMessage(), $e->getCode(), $e);
+		}
 	}
 
 	/**
