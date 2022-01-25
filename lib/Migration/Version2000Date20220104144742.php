@@ -20,11 +20,11 @@ class Version2000Date20220104144742 extends SimpleMigrationStep {
 	public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper {
 		$schema = $schemaClosure();
 
-//		$recipientsTable = $schema->getTable('mail_recipients');
-//		$recipientsTable->addColumn('mailbox_type', 'integer', [
-//			'notnull' => true,
-//			'default' => 0,
-//		]);
+		$recipientsTable = $schema->getTable('mail_recipients');
+		$recipientsTable->addColumn('mailbox_type', 'integer', [
+			'notnull' => true,
+			'default' => 0,
+		]);
 
 		$localMailboxTable = $schema->createTable('mail_local_mailbox');
 		$localMailboxTable->addColumn('id', 'integer', [
