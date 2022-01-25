@@ -67,7 +67,7 @@ class LocalMailboxMessageMapper extends QBMapper {
 		}, $this->accountMapper->findByUserId($userId));
 
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('m.*')
+		$qb->select('*')
 			->from($this->getTableName())
 			->where(
 				$qb->expr()->in('account_id', $qb->createNamedParameter($accountIds, IQueryBuilder::PARAM_INT_ARRAY), IQueryBuilder::PARAM_INT_ARRAY)
@@ -92,7 +92,7 @@ class LocalMailboxMessageMapper extends QBMapper {
 	 */
 	public function find(int $id): LocalMailboxMessage {
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('m.*')
+		$qb->select('*')
 			->from($this->getTableName())
 			->where(
 				$qb->expr()->in('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT), IQueryBuilder::PARAM_INT)
