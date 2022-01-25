@@ -63,7 +63,7 @@ class LocalMailboxMessageMapper extends QBMapper {
 	 */
 	public function getAllForUser(string $userId): array {
 		$accountIds = array_map(static function ($account) {
-			return $account['id'];
+			return $account->getId();
 		}, $this->accountMapper->findByUserId($userId));
 
 		$qb = $this->db->getQueryBuilder();
