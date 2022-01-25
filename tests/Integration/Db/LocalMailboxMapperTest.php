@@ -27,12 +27,9 @@ namespace OCA\Mail\Tests\Integration\Db;
 
 use ChristophWurst\Nextcloud\Testing\DatabaseTransaction;
 use ChristophWurst\Nextcloud\Testing\TestCase;
-use OCA\Mail\Account;
-use OCA\Mail\Db\LocalMailboxMapper;
+use OCA\Mail\Db\LocalMailboxMessageMapper;
 use OCA\Mail\Db\MailboxMapper;
-use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use PHPUnit\Framework\MockObject\MockObject;
 
@@ -53,7 +50,7 @@ class LocalMailboxMapperTest extends TestCase {
 
 		$this->db = \OC::$server->getDatabaseConnection();
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
-		$this->mapper = new LocalMailboxMapper(
+		$this->mapper = new LocalMailboxMessageMapper(
 			$this->db,
 			$this->timeFactory
 		);
