@@ -41,8 +41,9 @@ class Version2000Date20220104144742 extends SimpleMigrationStep {
 			'notnull' => true,
 			'length' => 4,
 		]);
-		$localMailboxTable->addColumn('send_at', 'string', [
+		$localMailboxTable->addColumn('send_at', 'integer', [
 			'notnull' => false,
+			'unsigned' => true,
 			'length' => 4
 		]);
 		$localMailboxTable->addColumn('subject', 'text', [
@@ -53,17 +54,15 @@ class Version2000Date20220104144742 extends SimpleMigrationStep {
 			'notnull' => true,
 			'length' => 16777215
 		]);
-		$localMailboxTable->addColumn('html', 'integer', [
-			'notnull' => true,
-			'unsigned' => true,
-			'length' => 1,
+		$localMailboxTable->addColumn('html', 'boolean', [
+			'notnull' => false,
+			'default' => false,
 		]);
-		$localMailboxTable->addColumn('mdn', 'integer', [
-			'notnull' => true,
-			'unsigned' => true,
-			'length' => 1,
+		$localMailboxTable->addColumn('mdn', 'boolean', [
+			'notnull' => false,
+			'default' => false,
 		]);
-		$localMailboxTable->addColumn('reply_to_message_id', 'string', [
+		$localMailboxTable->addColumn('in_reply_to_message_id', 'string', [
 			'notnull' => false,
 			'length' => 255,
 		]);

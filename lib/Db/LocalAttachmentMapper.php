@@ -29,6 +29,7 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\DB\Exception;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
+use function OCA\Mail\array_flat_map;
 
 /**
  * @template-extends QBMapper<LocalAttachment>
@@ -60,6 +61,7 @@ class LocalAttachmentMapper extends QBMapper {
 	}
 
 	/**
+	 * @return LocalAttachment[]
 	 * @throws Exception
 	 */
 	public function findForLocalMailbox(int $localMessageId, string $userId): array {
@@ -79,25 +81,23 @@ class LocalAttachmentMapper extends QBMapper {
 			return [];
 		}
 
-		return array_map(function ($attachmentId) use ($userId) {
+		return array_flat_map(function ($attachmentId) use ($userId) {
 			return $this->findRows($userId, $attachmentId);
 		}, $attachmentIds);
 	}
 
 	/**
+	 * @return LocalAttachment[]
 	 * @throws Exception
 	 */
 	public function findRows(string $userId, int $id): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb
+		$query = $qb
 			->select('*')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
 			->andWhere($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT), IQueryBuilder::PARAM_INT));
-		$result = $qb->execute();
-		$rows = $result->fetchAll();
-		$result->closeCursor();
-		return $rows;
+		return $this->findEntities($query);
 	}
 
 	/**

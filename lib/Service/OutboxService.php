@@ -29,8 +29,11 @@ namespace OCA\Mail\Service;
 use OCA\Mail\Account;
 use OCA\Mail\Contracts\ILocalMailbox;
 use OCA\Mail\Contracts\IMailTransmission;
+use OCA\Mail\Db\LocalAttachmentMapper;
 use OCA\Mail\Db\LocalMailboxMessage;
 use OCA\Mail\Db\LocalMailboxMessageMapper;
+use OCA\Mail\Db\Recipient;
+use OCA\Mail\Db\RecipientMapper;
 use OCA\Mail\Exception\ServiceException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
@@ -48,10 +51,22 @@ class OutboxService implements ILocalMailbox {
 	/** @var LocalMailboxMessageMapper */
 	private $mapper;
 
-	public function __construct(IMailTransmission $transmission, LoggerInterface $logger, LocalMailboxMessageMapper $mapper) {
+	/** @var LocalAttachmentMapper */
+	private $attachmentMapper;
+
+	/** @var RecipientMapper */
+	private $recipientMapper;
+
+	public function __construct(IMailTransmission $transmission,
+								LoggerInterface $logger,
+								LocalMailboxMessageMapper $mapper,
+								LocalAttachmentMapper $attachmentMapper,
+								RecipientMapper $recipientMapper) {
 		$this->transmission = $transmission;
 		$this->logger = $logger;
 		$this->mapper = $mapper;
+		$this->attachmentMapper = $attachmentMapper;
+		$this->recipientMapper = $recipientMapper;
 	}
 
 	/**
@@ -59,9 +74,17 @@ class OutboxService implements ILocalMailbox {
 	 */
 	public function getMessages(string $userId): array {
 		try {
-			return $this->mapper->getAllForUser($userId);
+			$messages = $this->mapper->getAllForUser($userId);
+
+			// Attach related data
+			return array_map(function (LocalMailboxMessage $message) use ($userId) {
+				$row = $message->jsonSerialize();
+				$row['attachments'] = $this->attachmentMapper->findForLocalMailbox($message->getId(), $userId);
+				$row['recipients'] = $this->recipientMapper->findRecipients($message->getId(), Recipient::TYPE_OUTBOX);
+				return $row;
+			}, $messages);
 		} catch (Exception $e) {
-			throw new ServiceException('', 0, $e);
+			throw new ServiceException("Could not get messages for user $userId", 0, $e);
 		}
 	}
 
@@ -97,7 +120,7 @@ class OutboxService implements ILocalMailbox {
 			$this->transmission->sendLocalMessage($account, $message, $related['recipients'], $related['attachments']);
 			$this->mapper->deleteWithRelated($message, $account->getUserId());
 		} catch (Exception $e) {
-			throw new ServiceException('Could not send message');
+			throw new ServiceException('Could not send message', 0, $e);
 		}
 	}
 
@@ -108,7 +131,7 @@ class OutboxService implements ILocalMailbox {
 		try {
 			$this->mapper->saveWithRelatedData($message, $recipients, $attachmentIds);
 		} catch (Exception $e) {
-			throw new ServiceException('Could not save message', 400);
+			throw new ServiceException('Could not save message', 400, $e);
 		}
 		return $message;
 	}
