@@ -211,36 +211,35 @@ class MailTransmission implements IMailTransmission {
 	}
 
 	public function sendLocalMessage(Account $account, LocalMailboxMessage $message, array $recipients, array $attachments = []): void {
-		$to = new AddressList(
-			array_filter($recipients, static function ($recipient) {
+		$to = array_filter($recipients, static function ($recipient) {
 				if (Recipient::TYPE_TO === $recipient['type']) {
-					Address::fromRaw($recipient['label'], $recipient['email']);
+					return Address::fromRaw($recipient['label'], $recipient['email']);
 				}
-			}));
-		$cc = new AddressList(
-			array_filter($recipients, static function ($recipient) {
+			});
+		$toList = new AddressList($to);
+		$cc = new AddressList(array_filter($recipients, static function ($recipient) {
 				if (Recipient::TYPE_CC === $recipient['type']) {
-					Address::fromRaw($recipient['label'], $recipient['email']);
+					return Address::fromRaw($recipient['label'], $recipient['email']);
 				}
 			}));
 		$bcc = new AddressList(
 			array_filter($recipients, static function ($recipient) {
 				if (Recipient::TYPE_BCC === $recipient['type']) {
-					Address::fromRaw($recipient['label'], $recipient['email']);
+					return Address::fromRaw($recipient['label'], $recipient['email']);
 				}
 			}));
 		$messageData = new NewMessageData(
-			$account, $to, $cc, $bcc, $message->getSubject(), $message['body'], $attachments, $message->isHtml(), $message->isMdn()
+			$account, $toList, $cc, $bcc, $message->getSubject(), $message->getBody(), $attachments, $message->isHtml(), $message->isMdn()
 		);
 
 		try {
 			if (!$message->isMdn()) {
 				$this->sendMessage($messageData);
 			} else {
-				// wot? How do I MDN?
-				throw new ServiceException('Not implemented', 400);
+				// MDN should be sent directly
+				throw new ServiceException('Not implemented');
 			}
-		} catch (SentMailboxNotSetException | Exception $e) {
+		} catch (SentMailboxNotSetException $e) {
 			throw new ServiceException('Could not send message' . $e->getMessage(), $e->getCode(), $e);
 		}
 	}

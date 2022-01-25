@@ -50,11 +50,11 @@ class Recipient extends Entity implements JsonSerializable {
 	public const TYPE_CC = 2;
 	public const TYPE_BCC = 3;
 
-	private $messageId;
-	private $type;
-	private $mailboxType;
-	private $lable;
-	private $email;
+	protected $messageId;
+	protected $type;
+	protected $mailboxType;
+	protected $lable;
+	protected $email;
 
 	public function __construct() {
 		$this->addType('messageId', 'integer');

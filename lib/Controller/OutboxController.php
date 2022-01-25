@@ -60,6 +60,7 @@ class OutboxController extends Controller {
 
 	/**
 	 * @NoAdminRequired
+	 * @TrapError
 	 *
 	 * @return JSONResponse
 	 */
@@ -77,6 +78,7 @@ class OutboxController extends Controller {
 
 	/**
 	 * @NoAdminRequired
+	 * @TrapError
 	 *
 	 * @param int $id
 	 * @return JSONResponse
@@ -95,6 +97,7 @@ class OutboxController extends Controller {
 
 	/**
 	 * @NoAdminRequired
+	 * @TrapError
 	 *
 	 * @param int $accountId
 	 * @param int $sendAt
@@ -147,6 +150,7 @@ class OutboxController extends Controller {
 
 	/**
 	 * @NoAdminRequired
+	 * @TrapError
 	 *
 	 * @param int $id
 	 * @return JSONResponse
@@ -166,6 +170,7 @@ class OutboxController extends Controller {
 
 	/**
 	 * @NoAdminRequired
+	 * @TrapError
 	 *
 	 * @param int $id
 	 * @return JSONResponse
