@@ -58,7 +58,7 @@ class LocalMailboxMessageMapper extends QBMapper {
 
 	/**
 	 * @param string $userId
-	 * @return array
+	 * @return LocalMailboxMessage[]
 	 * @throws DBException
 	 */
 	public function getAllForUser(string $userId): array {
@@ -67,22 +67,12 @@ class LocalMailboxMessageMapper extends QBMapper {
 		}, $this->accountMapper->findByUserId($userId));
 
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
+		$query = $qb->select('*')
 			->from($this->getTableName())
 			->where(
 				$qb->expr()->in('account_id', $qb->createNamedParameter($accountIds, IQueryBuilder::PARAM_INT_ARRAY), IQueryBuilder::PARAM_INT_ARRAY)
 			);
-		$result = $qb->execute();
-
-		// rebuild as we're returning a mix of array and entity here
-		$messages = array_map(function (array $row) use ($userId) {
-			$row['attachments'] = $this->attachmentMapper->findForLocalMailbox($row['id'], $userId);
-			$row['recipients'] = $this->recipientMapper->findRecipients($row['id'], Recipient::TYPE_OUTBOX);
-			return $row;
-		}, $result->fetchAll());
-		$result->closeCursor();
-
-		return $messages;
+		return $this->findEntities($query);
 	}
 
 	/**

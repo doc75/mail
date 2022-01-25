@@ -39,9 +39,9 @@ use OCP\AppFramework\Db\Entity;
  * @method void setSubject(string $subject)
  * @method string getBody()
  * @method void setBody(string $body)
- * @method bool isHtml()
+ * @method bool|null isHtml()
  * @method void setHtml(bool $html)
- * @method bool isMdn()
+ * @method bool|null isMdn()
  * @method void setMdn(bool $mdn)
  * @method string getInReplyToMessageId()
  * @method void setInReplyToMessageId(string $inReplyToMessageId)
@@ -85,6 +85,7 @@ class LocalMailboxMessage extends Entity implements JsonSerializable {
 		$this->addType('html', 'boolean');
 		$this->addType('inReplyToMessageId', 'string');
 	}
+
 	/**
 	 * @return array
 	 */
@@ -96,8 +97,8 @@ class LocalMailboxMessage extends Entity implements JsonSerializable {
 			'send_at' => $this->getSendAt(),
 			'subject' => $this->getSubject(),
 			'text' => $this->getBody(),
-			'html' => $this->isHtml(),
-			'mdn' => $this->isMdn(),
+			'html' => ($this->isHtml() === true),
+			'mdn' => ($this->isMdn() === true),
 			'inReplyToMessageId' => $this->getInReplyToMessageId()
 		];
 	}

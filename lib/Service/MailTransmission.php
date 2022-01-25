@@ -46,6 +46,7 @@ use OCA\Mail\Contracts\IAttachmentService;
 use OCA\Mail\Contracts\IMailManager;
 use OCA\Mail\Contracts\IMailTransmission;
 use OCA\Mail\Db\Alias;
+use OCA\Mail\Db\LocalAttachment;
 use OCA\Mail\Db\LocalMailboxMessage;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\MailboxMapper;
@@ -210,7 +211,16 @@ class MailTransmission implements IMailTransmission {
 		);
 	}
 
+	/**
+	 * @param Account $account
+	 * @param LocalMailboxMessage $message
+	 * @param Recipient[] $recipients
+	 * @param LocalAttachment[] $attachments
+	 * @return void
+	 * @throws ServiceException
+	 */
 	public function sendLocalMessage(Account $account, LocalMailboxMessage $message, array $recipients, array $attachments = []): void {
+		// TODO: $recipients and $attachments are now arrays of entities
 		$to = array_filter($recipients, static function ($recipient) {
 				if (Recipient::TYPE_TO === $recipient['type']) {
 					return Address::fromRaw($recipient['label'], $recipient['email']);

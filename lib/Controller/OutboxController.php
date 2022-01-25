@@ -65,15 +65,12 @@ class OutboxController extends Controller {
 	 * @return JSONResponse
 	 */
 	public function index(): JSONResponse {
-		try {
-			return new JSONResponse(
-				[
-					'messages' => $this->service->getMessages($this->userId)
-				]
-			);
-		} catch (ServiceException $e) {
-			return new JSONResponse($e->getMessage(), $e->getCode());
-		}
+		return new JSONResponse(
+			[
+				// TODO: wrap me in try/catch?!
+				'messages' => $this->service->getMessages($this->userId)
+			]
+		);
 	}
 
 	/**
@@ -90,9 +87,8 @@ class OutboxController extends Controller {
 		} catch (ServiceException | ClientException $e) {
 			return new JSONResponse($e->getMessage(), $e->getCode());
 		}
-		return new JSONResponse(
-			$message
-		);
+
+		return new JSONResponse($message);
 	}
 
 	/**
@@ -109,6 +105,8 @@ class OutboxController extends Controller {
 	 * @param array $recipients
 	 * @param array $attachmentIds
 	 * @return JSONResponse
+	 *
+	 * @throws ServiceException
 	 */
 	public function save(
 		int    $accountId,
@@ -124,10 +122,11 @@ class OutboxController extends Controller {
 		try {
 			$this->accountService->find($this->userId, $accountId);
 		} catch (ClientException $e) {
-			return new JSONResponse($e->getMessage(), $e->getCode());
+			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
 
 		$message = new LocalMailboxMessage();
+		$message->setType(LocalMailboxMessage::OUTGOING);
 		$message->setAccountId($accountId);
 		$message->setSendAt($sendAt);
 		$message->setSubject($subject);
@@ -136,11 +135,8 @@ class OutboxController extends Controller {
 		$message->setMdn($isMdn);
 		$message->setInReplyToMessageId($inReplyToMessageId);
 
-		try {
-			$this->service->saveMessage($message, $recipients, $attachmentIds);
-		} catch (ServiceException $e) {
-			return new JSONResponse($e->getMessage(), $e->getCode());
-		}
+		// TODO: wrap me in try/catch?!
+		$this->service->saveMessage($message, $recipients, $attachmentIds);
 
 		// Return with related here?
 		return new JSONResponse(

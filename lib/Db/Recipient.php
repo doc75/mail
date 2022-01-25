@@ -53,7 +53,7 @@ class Recipient extends Entity implements JsonSerializable {
 	protected $messageId;
 	protected $type;
 	protected $mailboxType;
-	protected $lable;
+	protected $label;
 	protected $email;
 
 	public function __construct() {
