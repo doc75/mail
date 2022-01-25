@@ -24,7 +24,7 @@ import * as OutboxService from '../../service/OutboxService'
 
 export default {
 	async fetchMessages({ commit }) {
-		const messages = await OutboxService.fetchMessages()
+		const { messages } = await OutboxService.fetchMessages()
 		for (const message of messages) {
 			commit('addMessage', { message })
 		}

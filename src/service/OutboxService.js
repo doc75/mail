@@ -42,9 +42,7 @@ export async function deleteMessage(id) {
 export async function enqueueMessage(message) {
 	const url = generateUrl('/apps/mail/api/outbox')
 
-	const { data } = await axios.post(url, {
-		message,
-	})
+	const { data } = await axios.post(url, message)
 	return data
 }
 

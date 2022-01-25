@@ -32,9 +32,9 @@
 					v-if="error"
 					:error="t('mail', 'Could not open outbox')" />
 				<Loading
-					v-if="loading"
+					v-else-if="loading"
 					:hint="t('mail', 'Loading messages …')" />
-				<EmptyMailbox v-if="messages.length === 0" />
+				<EmptyMailbox v-else-if="messages.length === 0" />
 				<OutboxMessageList
 					v-else
 					:messages="messages" />
@@ -52,6 +52,7 @@
 import AppContent from '@nextcloud/vue/dist/Components/AppContent'
 import AppContentList from '@nextcloud/vue/dist/Components/AppContentList'
 import Loading from './Loading'
+import Error from './Error'
 import EmptyMailbox from './EmptyMailbox'
 import OutboxMessageList from './OutboxMessageList'
 import logger from '../logger'
