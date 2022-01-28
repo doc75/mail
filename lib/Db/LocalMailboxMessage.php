@@ -94,7 +94,7 @@ class LocalMailboxMessage extends Entity implements JsonSerializable {
 			'id' => $this->getId(),
 			'type' => $this->getType(),
 			'accountId' => $this->getAccountId(),
-			'send_at' => $this->getSendAt(),
+			'sendAt' => $this->getSendAt(),
 			'subject' => $this->getSubject(),
 			'text' => $this->getBody(),
 			'html' => ($this->isHtml() === true),
