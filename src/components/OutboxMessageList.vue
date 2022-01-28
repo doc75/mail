@@ -22,17 +22,28 @@
 
 <template>
 	<div>
+		<!--
 		<div
 			v-for="message in messages"
 			:key="message.id">
 			{{ message.subject }}
 		</div>
+		-->
+		<OutboxMessageListItem
+			v-for="message in messages"
+			:key="message.id"
+			:message="message" />
 	</div>
 </template>
 
 <script>
+import OutboxMessageListItem from './OutboxMessageListItem'
+
 export default {
 	name: 'OutboxMessageList',
+	components: {
+		OutboxMessageListItem,
+	},
 	props: {
 		messages: {
 			type: Array,

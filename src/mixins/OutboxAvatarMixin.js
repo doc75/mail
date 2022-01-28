@@ -21,6 +21,17 @@
  */
 
 export default {
-	getAllMessages: state => Object.values(state.messages),
-	getMessage: state => id => state.messages[id],
+	computed: {
+		recipients() {
+			const to = this.message.to ?? []
+			const cc = this.message.cc ?? []
+			return [...to, ...cc]
+		},
+		avatarDisplayName() {
+			return this.recipients[0]?.label ?? this.recipients[0]?.email ?? '?'
+		},
+		avatarEmail() {
+			return this.recipients[0]?.email ?? ''
+		},
+	},
 }

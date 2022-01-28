@@ -22,36 +22,18 @@
 
 <template>
 	<ListItem
-		class="list-item-style"
+		class="outbox-message"
 		:class="{ selected }"
-		:to="link"
-		:title="addresses"
-		:details="formatted()">
+		:to="to"
+		:title="title">
 		<template #icon>
 			<div
-				class="mail-message-account-color"
+				class="account-color"
 				:style="{'background-color': accountColor}" />
-			<div class="app-content-list-item-icon">
-				<Avatar :display-name="addresses" :email="avatarEmail" />
-				<p v-if="selectMode" class="app-content-list-item-select-checkbox">
-					<input :id="`select-checkbox-${data.uid}`"
-						class="checkbox"
-						type="checkbox"
-						:checked="selected">
-					<label
-						:for="`select-checkbox-${data.uid}`"
-						@click.exact.prevent="toggleSelected"
-						@click.shift.prevent="onSelectMultiple" />
-				</p>
-			</div>
+			<Avatar :display-name="avatarDisplayName" :email="avatarEmail" />
 		</template>
 		<template #subtitle>
-			<span v-if="data.answered" class="icon-reply" />
-			<span v-if="data.hasAttachments === true" class="icon-public icon-attachment" />
-			<span v-if="data" class="draft">
-				<em>{{ t('mail', 'Draft: ') }}</em>
-			</span>
-			{{ data.subject }}
+			{{ message.subject }}
 		</template>
 		<template #actions />
 	</ListItem>
@@ -61,25 +43,60 @@
 import ListItem from '@nextcloud/vue/dist/Components/ListItem'
 import Avatar from './Avatar'
 import { calculateAccountColor } from '../util/AccountColor'
+import OutboxAvatarMixin from '../mixins/OutboxAvatarMixin'
 
 export default {
-	name: 'OutboxMessage',
+	name: 'OutboxMessageListItem',
 	components: {
 		ListItem,
 		Avatar,
 	},
+	mixins: [
+		OutboxAvatarMixin,
+	],
 	props: {
 		message: {
 			type: Object,
 			required: true,
 		},
 	},
-	accountColor() {
-		const account = this.$store.getters.getAccount(this.message.accountId)
-		return calculateAccountColor(account?.emailAddress ?? '')
+	computed: {
+		to() {
+			return {
+				name: 'outbox',
+				params: {
+					messageId: this.message.id,
+				},
+			}
+		},
+		selected() {
+			return this.$route.params.messageId === this.message.id
+		},
+		accountColor() {
+			const account = this.$store.getters.getAccount(this.message.accountId)
+			return calculateAccountColor(account?.emailAddress ?? '')
+		},
+		title() {
+			return 'Due in 30 seconds'
+		},
 	},
 }
 </script>
 
 <style lang="scss" scoped>
+.outbox-message {
+	&.active {
+		background-color: var(--color-background-dark);
+		border-radius: 16px;
+	}
+
+	.account-color {
+		position: absolute;
+		left: 0;
+		width: 2px;
+		height: 69px;
+		z-index: 1;
+	}
+
+}
 </style>

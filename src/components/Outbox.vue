@@ -30,7 +30,9 @@
 			<AppContentList>
 				<Error
 					v-if="error"
-					:error="t('mail', 'Could not open outbox')" />
+					:error="t('mail', 'Could not open outbox')"
+					message=""
+					role="alert" />
 				<Loading
 					v-else-if="loading"
 					:hint="t('mail', 'Loading messages …')" />
@@ -42,8 +44,8 @@
 		</template>
 
 		<!-- Content -->
-		<div v-if="isMessageShown">
-			Message
+		<div v-if="isMessageShown && currentMessage">
+			<OutboxMessageContent :message="currentMessage" />
 		</div>
 	</AppContent>
 </template>
@@ -55,6 +57,7 @@ import Loading from './Loading'
 import Error from './Error'
 import EmptyMailbox from './EmptyMailbox'
 import OutboxMessageList from './OutboxMessageList'
+import OutboxMessageContent from './OutboxMessageContent'
 import logger from '../logger'
 
 export default {
@@ -66,6 +69,7 @@ export default {
 		Loading,
 		EmptyMailbox,
 		OutboxMessageList,
+		OutboxMessageContent,
 	},
 	data() {
 		return {
@@ -77,8 +81,15 @@ export default {
 		isMessageShown() {
 			return !!this.$route.params.messageId
 		},
+		currentMessage() {
+			if (!this.isMessageShown) {
+				return null
+			}
+
+			return this.$store.getters['outbox/getMessage'](this.$route.params.messageId)
+		},
 		messages() {
-			return Object.values(this.$store.getters['outbox/getMessages'])
+			return this.$store.getters['outbox/getAllMessages']
 		},
 	},
 	async mounted() {
